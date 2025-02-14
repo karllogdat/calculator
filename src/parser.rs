@@ -9,66 +9,24 @@ enum ParseError {
     IncompleteOperandError,
 }
 
-trait Evaluable: Debug {
-    fn evaluate(&self) -> f64;
+#[derive(Debug, Clone)]
+enum Node {
+    Number(f64),
+    Add(Box<Node>, Box<Node>),
+    Subtract(Box<Node>, Box<Node>),
+    Multiply(Box<Node>, Box<Node>),
+    Divide(Box<Node>, Box<Node>),
 }
 
-#[derive(Debug)]
-struct NumberNode {
-    value: f64,
-}
-
-#[derive(Debug)]
-struct AddNode {
-    left: Box<dyn Evaluable>,
-    right: Box<dyn Evaluable>,
-}
-
-#[derive(Debug)]
-struct SubtractNode {
-    left: Box<dyn Evaluable>,
-    right: Box<dyn Evaluable>,
-}
-
-#[derive(Debug)]
-struct MultiplyNode {
-    left: Box<dyn Evaluable>,
-    right: Box<dyn Evaluable>,
-}
-
-#[derive(Debug)]
-struct DivideNode {
-    left: Box<dyn Evaluable>,
-    right: Box<dyn Evaluable>,
-}
-
-impl Evaluable for NumberNode {
+impl Node {
     fn evaluate(&self) -> f64 {
-        self.value
-    }
-}
-
-impl Evaluable for AddNode {
-    fn evaluate(&self) -> f64 {
-        self.left.evaluate() + self.right.evaluate()
-    }
-}
-
-impl Evaluable for SubtractNode {
-    fn evaluate(&self) -> f64 {
-        self.left.evaluate() - self.right.evaluate()
-    }
-}
-
-impl Evaluable for MultiplyNode {
-    fn evaluate(&self) -> f64 {
-        self.left.evaluate() * self.right.evaluate()
-    }
-}
-
-impl Evaluable for DivideNode {
-    fn evaluate(&self) -> f64 {
-        self.left.evaluate() / self.right.evaluate()
+        match self {
+            Node::Number(n) => *n,
+            Node::Add(l, r) => l.evaluate() + r.evaluate(),
+            Node::Subtract(l, r) => l.evaluate() - r.evaluate(),
+            Node::Multiply(l, r) => l.evaluate() * r.evaluate(),
+            Node::Divide(l, r) => l.evaluate() / r.evaluate(),
+        }
     }
 }
 
@@ -83,8 +41,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn get_expression_tree(&mut self) -> Result<&Box<dyn Evaluable>, ParseError> {
-        let mut output_queue: VecDeque<Box<dyn Evaluable>> = VecDeque::new();
+    fn get_expression_tree(&mut self) -> Result<Box<Node>, ParseError> {
+        let mut output_queue: VecDeque<Box<Node>> = VecDeque::new();
         let mut op_stack: VecDeque<Token> = VecDeque::new();
         loop {
             let token = self.lexer.next_token();
@@ -92,7 +50,7 @@ impl<'a> Parser<'a> {
                 Token::EOF => break,
                 Token::SPACE => continue,
                 Token::NUMBER(value) => {
-                    output_queue.push_front(Box::new(NumberNode { value }));
+                    output_queue.push_front(Box::new(Node::Number(value)));
                 }
                 Token::PLUS | Token::MINUS | Token::TIMES | Token::DIVIDE => {
                     if op_stack.is_empty() {
@@ -115,7 +73,7 @@ impl<'a> Parser<'a> {
 
                             match token {
                                 Token::PLUS => {
-                                    output_queue.push_front(Box::new(AddNode { left, right }))
+                                    output_queue.push_front(Box::new(Node::Add(left, right)))
                                 }
                                 _ => return Err(ParseError::InvalidTokenError),
                             }
@@ -125,5 +83,7 @@ impl<'a> Parser<'a> {
                 Token::UNKNOWN => return Err(ParseError::InvalidTokenError),
             }
         }
+
+        Ok(Box::new(*output_queue.front().unwrap().clone()))
     }
 }
