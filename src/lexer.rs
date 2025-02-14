@@ -10,6 +10,16 @@ pub enum Token {
     UNKNOWN,
 }
 
+impl Token {
+    pub fn get_precedence(&self) -> Option<u8> {
+        match self {
+            Token::PLUS | Token::MINUS => Some(1),
+            Token::TIMES | Token::DIVIDE => Some(2),
+            _ => None,
+        }
+    }
+}
+
 // Thanks chatgpt for making this shit unreadable
 // (i dont understand rust lifetimes)
 pub struct Lexer<'a> {
