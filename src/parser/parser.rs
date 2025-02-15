@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 
 use crate::lexer::{Lexer, Token};
 
+#[derive(Debug)]
 pub enum ParseError {
     InvalidTokenError,
     IncompleteOperandError,

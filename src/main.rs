@@ -16,5 +16,9 @@ fn main() {
     print!("Enter expression > ");
     let input = get_input().unwrap();
     let mut parser = Parser::new(&input);
-    let _ = parser.get_expression_tree();
+    let res = parser.get_expression_tree();
+    match res {
+        Ok(root) => println!("{}", root.evaluate()),
+        Err(e) => println!("An error occured: {:?}", e),
+    }
 }
