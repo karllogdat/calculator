@@ -1,4 +1,3 @@
-use core::num;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
@@ -19,6 +18,23 @@ enum Node {
 }
 
 impl Node {
+    fn new_num(token: Token) -> Option<Box<Self>> {
+        match token {
+            Token::NUMBER(n) => Some(Box::new(Node::Number(n))),
+            _ => None,
+        }
+    }
+
+    fn new_operator(token: &Token, left: Box<Node>, right: Box<Node>) -> Option<Box<Self>> {
+        match token {
+            Token::PLUS => Some(Box::new(Node::Add(left, right))),
+            Token::MINUS => Some(Box::new(Node::Subtract(left, right))),
+            Token::TIMES => Some(Box::new(Node::Multiply(left, right))),
+            Token::DIVIDE => Some(Box::new(Node::Divide(left, right))),
+            _ => None,
+        }
+    }
+
     fn evaluate(&self) -> f64 {
         match self {
             Node::Number(n) => *n,
@@ -32,12 +48,14 @@ impl Node {
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
+    tree: Option<Box<Node>>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
             lexer: (Lexer::new(input)),
+            tree: None,
         }
     }
 
@@ -49,8 +67,11 @@ impl<'a> Parser<'a> {
             match token {
                 Token::EOF => break,
                 Token::SPACE => continue,
-                Token::NUMBER(value) => {
-                    output_queue.push_front(Box::new(Node::Number(value)));
+                Token::NUMBER(_) => {
+                    let node = Node::new_num(token);
+                    if let Some(node) = node {
+                        output_queue.push_front(node);
+                    }
                 }
                 Token::PLUS | Token::MINUS | Token::TIMES | Token::DIVIDE => {
                     if op_stack.is_empty() {
@@ -70,12 +91,9 @@ impl<'a> Parser<'a> {
                                 Some(_) => (),
                             }
                             let left = left.unwrap();
-
-                            match token {
-                                Token::PLUS => {
-                                    output_queue.push_front(Box::new(Node::Add(left, right)))
-                                }
-                                _ => return Err(ParseError::InvalidTokenError),
+                            let node = Node::new_operator(&token, left, right);
+                            if let Some(node) = node {
+                                output_queue.push_front(node);
                             }
                         }
                     }
