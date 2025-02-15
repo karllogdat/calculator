@@ -3,13 +3,13 @@ use std::fmt::Debug;
 
 use crate::lexer::{self, Lexer, Token};
 
-enum ParseError {
+pub enum ParseError {
     InvalidTokenError,
     IncompleteOperandError,
 }
 
 #[derive(Debug, Clone)]
-enum Node {
+pub enum Node {
     Number(f64),
     Add(Box<Node>, Box<Node>),
     Subtract(Box<Node>, Box<Node>),
@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn get_expression_tree(&mut self) -> Result<Box<Node>, ParseError> {
+    pub fn get_expression_tree(&mut self) -> Result<Box<Node>, ParseError> {
         let mut output_queue: VecDeque<Box<Node>> = VecDeque::new();
         let mut op_stack: VecDeque<Token> = VecDeque::new();
         loop {
@@ -96,12 +96,27 @@ impl<'a> Parser<'a> {
                                 output_queue.push_front(node);
                             }
                         }
+                        op_stack.push_front(token);
                     }
                 }
                 Token::UNKNOWN => return Err(ParseError::InvalidTokenError),
             }
         }
 
+        while !op_stack.is_empty() {
+            let token = op_stack.pop_front().unwrap();
+            let right = output_queue.pop_front();
+            let left = output_queue.pop_front();
+            if left.is_none() || right.is_none() {
+                return Err(ParseError::IncompleteOperandError);
+            }
+            let node = Node::new_operator(&token, left.unwrap(), right.unwrap());
+            if let Some(node) = node {
+                output_queue.push_front(node);
+            }
+        }
+
+        println!("The evaluated smth is {}", output_queue.front().unwrap().evaluate());
         Ok(Box::new(*output_queue.front().unwrap().clone()))
     }
 }

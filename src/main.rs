@@ -2,6 +2,7 @@ mod lexer;
 mod parser;
 
 use lexer::{Lexer, Token};
+use parser::Parser;
 use std::io::{self, Write};
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -71,8 +72,7 @@ fn get_postfix(input: &str) -> Result<Vec<Token>, CalculatorError> {
 
 fn main() {
     print!("Enter expression > ");
-    let postfix = get_postfix(&get_input().unwrap()).unwrap();
-    for token in postfix {
-        println!("{:?}", token);
-    }
+    let input = get_input().unwrap();
+    let mut parser = Parser::new(&input);
+    let _ = parser.get_expression_tree();
 }
